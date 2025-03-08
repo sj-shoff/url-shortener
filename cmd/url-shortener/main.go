@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"url-shortener/internal/config"
@@ -24,13 +23,13 @@ func main() {
 
 	// configuration
 	cfg := config.MustLoad()
-	fmt.Println(cfg)
 
 	// logger
 	log := setupLogger(cfg.Env)
 
 	log.Info("starting url-shortener", slog.String("env", cfg.Env))
 	log.Debug("debug messages are enabled")
+	log.Error("error messages are enabled")
 
 	// postgres
 	storage, err := postgres.NewPostgresDB(cfg.Postgres)
