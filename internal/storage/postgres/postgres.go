@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"url-shortener/internal/storage"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 type Storage struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 type Config struct {
@@ -24,7 +26,7 @@ type Config struct {
 
 func NewPostgresDB(cfg Config) (*Storage, error) {
 	const op = "storage.postgres.NewPostgresDB"
-	db, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.DBName, cfg.SSLMode))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.DBName, cfg.SSLMode))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -34,22 +36,18 @@ func NewPostgresDB(cfg Config) (*Storage, error) {
 		return nil, fmt.Errorf("%s: db.Ping error: %w", op, err)
 	}
 
-	stmt, err := db.Prepare(`
-	CREATE TABLE IF NOT EXISTS url(
-		id INTEGER PRIMARY KEY,
-		alias TEXT NOT NULL UNIQUE,
-		url TEXT NOT NULL);
-	CREATE INDEX IF NOT EXISTS idx_alias ON url(alias);
+	// Создаем таблицу и индекс с использованием MustExec
+	db.MustExec(`
+		CREATE TABLE IF NOT EXISTS url (
+			id SERIAL PRIMARY KEY,
+			alias TEXT NOT NULL UNIQUE,
+			url TEXT NOT NULL
+		);
 	`)
 
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	_, err = stmt.Exec()
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
+	db.MustExec(`
+		CREATE INDEX IF NOT EXISTS idx_alias ON url(alias);
+	`)
 
 	return &Storage{db: db}, nil
 }
@@ -58,9 +56,9 @@ func (s *Storage) SaveURL(urlToSave string, alias string) (int64, error) {
 	const op = "storage.postgres.SaveURL"
 
 	var id int64
-	err := s.db.QueryRow("INSERT INTO url (url, alias) VALUES ($1, $2) RETURNING id", urlToSave, alias).Scan(&id)
+	err := s.db.QueryRowx("INSERT INTO url (url, alias) VALUES ($1, $2) RETURNING id", urlToSave, alias).Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {
 			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
 		}
 		return 0, fmt.Errorf("%s: execute statement: %w", op, err)
@@ -72,13 +70,8 @@ func (s *Storage) SaveURL(urlToSave string, alias string) (int64, error) {
 func (s *Storage) GetURL(alias string) (string, error) {
 	const op = "storage.postgres.GetURL"
 
-	stmt, err := s.db.Prepare("SELECT url FROM url WHERE alias=$1")
-	if err != nil {
-		return "", fmt.Errorf("%s: prepare statement: %w", op, err)
-	}
-
 	var resURL string
-	err = stmt.QueryRow(alias).Scan(&resURL)
+	err := s.db.Get(&resURL, "SELECT url FROM url WHERE alias=$1", alias)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", fmt.Errorf("%s: %w", op, storage.ErrURLNotFound)
@@ -89,7 +82,6 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	}
 
 	return resURL, nil
-
 }
 
 // func (s *Storage) DeleteURL(alias string) error {}
