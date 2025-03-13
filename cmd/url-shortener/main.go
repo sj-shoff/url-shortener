@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 	"url-shortener/internal/config"
 	"url-shortener/internal/http-server/handlers/redirect"
+	"url-shortener/internal/http-server/handlers/url/delete"
 	"url-shortener/internal/http-server/handlers/url/save"
 	logger "url-shortener/internal/http-server/middleware"
 	"url-shortener/internal/lib/logger/handlers/slogpretty"
@@ -30,7 +36,12 @@ func main() {
 	// logger
 	log := setupLogger(cfg.Env)
 
-	log.Info("starting url-shortener", slog.String("env", cfg.Env))
+	log.Info(
+		"starting url-shortener",
+		slog.String("env", cfg.Env),
+		slog.String("version", "1.0"),
+	)
+
 	log.Debug("debug messages are enabled")
 	log.Error("error messages are enabled")
 
@@ -56,12 +67,15 @@ func main() {
 		}))
 
 		router.Post("/", save.New(log, storage))
-		//TODO: DELETE
+		router.Delete("/", delete.New(log, storage))
 	})
 
 	router.Get("/{alias}", redirect.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
@@ -71,11 +85,28 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server")
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to start server", sl.Err(err))
+		}
+	}()
+
+	log.Info("server started")
+
+	<-done
+	log.Info("stopping server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("failed to stop server", sl.Err(err))
+
+		return
 	}
 
-	log.Error("server stopped")
+	log.Info("server stopped")
 
 }
 
@@ -93,7 +124,7 @@ func setupLogger(env string) *slog.Logger {
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
-	default: // If env config is invalid, set prod settings by default due to security
+	default:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)

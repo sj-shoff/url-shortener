@@ -1,5 +1,4 @@
 env: "local" # local, dev, prod
-storage_path: "./storage/storage.db"
 http_server:
   adress: "localhost:8082"
   timeout: 4s # время на чтение и на отправку ответа
