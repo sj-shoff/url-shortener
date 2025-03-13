@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
 
-  todo-app:
+  url-shortener:
     build: .
     env_file: .env
     depends_on:
