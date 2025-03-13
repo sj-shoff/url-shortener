@@ -30,8 +30,6 @@ type Response struct {
 // TODO: move to config if needed
 const aliasLength = 6
 
-// создает моки для URLSaver (объект, который ведет себя как storage)
-
 //go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLSaver
 type URLSaver interface {
 	SaveURL(urlToSave string, alias string) (int64, error)

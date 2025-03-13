@@ -5,7 +5,7 @@ import (
 
 	"log/slog"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 
@@ -20,7 +20,6 @@ type URLDeleter interface {
 
 type Response struct {
 	resp.Response
-	Alias string `json:"alias,omitempty"`
 }
 
 func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
@@ -31,27 +30,23 @@ func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		alias := chi.URLParam(r, "id")
+		alias := chi.URLParam(r, "alias")
+
 		if alias == "" {
-			log.Error("empty alias")
+			log.Info("empty alias")
 			render.JSON(w, r, resp.Error("empty alias"))
 			return
 		}
 
-		if err := urlDeleter.DeleteURL(alias); err != nil {
-			log.Error("failed to delete URL", sl.Err(err), slog.String("alias", alias))
-			render.JSON(w, r, resp.Error("internal server error"))
+		err := urlDeleter.DeleteURL(alias)
+		if err != nil {
+			log.Error("failed to delete url", sl.Err(err), slog.String("alias", alias))
+			render.JSON(w, r, resp.Error("internal error"))
 			return
 		}
 
-		responseDelete(w, r, alias)
+		log.Info("url deleted", slog.String("alias", alias))
+
+		render.JSON(w, r, resp.OK())
 	}
-
-}
-
-func responseDelete(w http.ResponseWriter, r *http.Request, alias string) {
-	render.JSON(w, r, Response{
-		Response: resp.OK(),
-		Alias:    alias,
-	})
 }

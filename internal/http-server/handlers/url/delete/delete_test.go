@@ -14,7 +14,7 @@ import (
 
 	"url-shortener/internal/http-server/handlers/url/delete"
 	"url-shortener/internal/http-server/handlers/url/delete/mocks"
-
+	resp "url-shortener/internal/lib/api/response"
 	"url-shortener/internal/lib/logger/handlers/slogdiscard"
 )
 
@@ -51,7 +51,12 @@ func TestDeleteHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			urlDeleterMock := mocks.NewURLDeleter(t)
 
-			if tc.respError == "" && tc.mockError == nil {
+			// Устанавливаем поведение мока в зависимости от наличия ошибки
+			if tc.mockError != nil {
+				urlDeleterMock.On("DeleteURL", tc.alias).
+					Return(tc.mockError).
+					Once()
+			} else if tc.respError == "" {
 				urlDeleterMock.On("DeleteURL", tc.alias).
 					Return(tc.mockError).
 					Once()
@@ -77,17 +82,13 @@ func TestDeleteHandler(t *testing.T) {
 
 			body := rr.Body.String()
 
-			var resp delete.Response
+			var response resp.Response
 
-			err := json.Unmarshal([]byte(body), &resp)
+			err := json.Unmarshal([]byte(body), &response)
 			require.NoError(t, err)
 
-			require.Equal(t, tc.respError, resp.Error)
+			require.Equal(t, tc.respError, response.Error)
 			urlDeleterMock.AssertExpectations(t)
-
-			if tc.name == "Success" {
-				require.Equal(t, "", resp.Error)
-			}
 
 		})
 	}
