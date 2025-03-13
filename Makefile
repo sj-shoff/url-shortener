@@ -1,5 +1,5 @@
 build:
-	docker-compose build todo-app
+	docker-compose build url-shortener
 
 run:
-	docker-compose up todo-app
+	docker-compose up url-shortener
