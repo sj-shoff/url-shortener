@@ -26,6 +26,7 @@ services:
     environment:
       DB_HOST: db
       DB_PASSWORD: ${DB_PASSWORD}
+      CONFIG_PATH: /api/config/local.yaml
 
 volumes:
   postgres_data:
