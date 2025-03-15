@@ -7,6 +7,8 @@ export CONFIG_PATH=/home/sj_shoff/url-shortener/config/local.yaml
 ```bash
 docker-compose down -v --rmi all
 docker system prune -a --volumes
+
+docker-compose down -v && docker-compose up --build
 ```
 
 ### Работа с докером:

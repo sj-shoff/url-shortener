@@ -4,7 +4,9 @@ services:
   db:
     image: postgres:15
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
@@ -25,6 +27,9 @@ services:
       - "8082:8082"
     environment:
       DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_NAME: postgres
       DB_PASSWORD: ${DB_PASSWORD}
       CONFIG_PATH: /api/config/local.yaml
 

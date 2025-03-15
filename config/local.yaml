@@ -1,12 +1,12 @@
 env: "local" # local, dev, prod
 http_server:
-  adress: "localhost:8082"
+  address: "0.0.0.0:8082"
   timeout: 4s # время на чтение и на отправку ответа
   idle_timeout: 60s # время жизни соединения с клиентом
   user: "sj_shoff"
   password: "03032006"
 postgres:
-  host: 127.0.0.1
+  host: db
   port: "5432"
   username: postgres
   password: 03032006

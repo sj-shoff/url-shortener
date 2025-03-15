@@ -4,7 +4,7 @@
 - Разработка Веб-Приложения на Go, следуя дизайну REST API.
 - Работа с фреймворком <a href="https://github.com/go-chi/chi">go-chi/chi</a>.
 - Подход Чистой Архитектуры в построении структуры приложения. Техника внедрения зависимости.
-- Работа с БД Postgres. Запуск из Docker. Makefile.
+- Работа с БД Postgres. Запуск из Docker. Docker-compose. Makefile.
 - Работа с БД, используя библиотеку <a href="https://github.com/jmoiron/sqlx">sqlx</a>.
 - Сокращение длинных URL в короткие алиасы
 - Редирект по коротким ссылкам
