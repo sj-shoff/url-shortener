@@ -14,6 +14,7 @@
 - Конфигурация через environment variables
 - Graceful shutdown сервера
 - Middleware для обработки запросов
+- Unit tests для handlers (save/delete/redirect) с использованием <a href="https://github.com/stretchr/testify">testify</a>
 
 ### Для запуска приложения:
 
